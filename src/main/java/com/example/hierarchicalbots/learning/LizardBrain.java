@@ -15,6 +15,7 @@ public class LizardBrain {
     private final Map<StateActionKey, Double> actionWeights = new HashMap<>();
     private double explorationRate = 0.6;
     private double learningProgress;
+    private double surprisePain;
 
     public MotorDecision decide(PerceptionSnapshot snapshot, PrefrontalCortex.Plan plan) {
         StateKey stateKey = StateKey.from(snapshot);
@@ -30,9 +31,16 @@ public class LizardBrain {
         actionWeights.put(key, updated);
         explorationRate = Math.max(0.05, explorationRate * 0.995);
         learningProgress = Math.min(1.0, learningProgress + Math.abs(reward) * 0.01);
+        surprisePain = reward;
     }
 
-    public double calculateReward(BlockPos spawnPos, Vec3d lastPosition, Vec3d currentPosition, float lastHealth, float currentHealth) {
+    public double calculateReward(BlockPos spawnPos,
+                                  Vec3d lastPosition,
+                                  Vec3d currentPosition,
+                                  float lastHealth,
+                                  float currentHealth,
+                                  boolean hitWall,
+                                  boolean fell) {
         double reward = 0.0;
         if (lastPosition != null && currentPosition != null) {
             double lastDistance = lastPosition.distanceTo(Vec3d.ofCenter(spawnPos));
@@ -41,10 +49,17 @@ public class LizardBrain {
                 reward += 1.0;
             }
         }
+        if (hitWall || fell) {
+            reward -= 1.0;
+        }
         if (currentHealth < lastHealth) {
             reward -= 0.5;
         }
         return reward;
+    }
+
+    public double getSurprisePain() {
+        return surprisePain;
     }
 
     public double getLearningProgress() {

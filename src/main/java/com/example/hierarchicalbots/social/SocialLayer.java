@@ -1,5 +1,6 @@
 package com.example.hierarchicalbots.social;
 
+import com.example.hierarchicalbots.HierarchicalBotsMod;
 import com.example.hierarchicalbots.core.BotAgent;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,29 +10,31 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.Vec3d;
 
 public class SocialLayer {
-    private static final double CHAT_RADIUS = 12.0;
+    private static final double CHAT_RADIUS = 3.0;
 
     private final Map<Identifier, List<SocialMessage>> messageQueues = new ConcurrentHashMap<>();
 
-    public void broadcast(Identifier from, Vec3d position, String content, List<BotAgent> agents) {
-        SocialMessage message = new SocialMessage(from, content, System.currentTimeMillis());
-        for (BotAgent agent : agents) {
-            if (agent.getAgentId().equals(from)) {
+    public void exchangeIfClose(BotAgent agent, List<BotAgent> agents) {
+        Vec3d position = agent.getConsciousnessState().getLastKnownPosition();
+        if (position == null) {
+            return;
+        }
+        for (BotAgent other : agents) {
+            if (other == agent) {
                 continue;
             }
-            Vec3d otherPosition = agent.getConsciousnessState().getLastKnownPosition();
+            Vec3d otherPosition = other.getConsciousnessState().getLastKnownPosition();
             if (otherPosition != null && otherPosition.isInRange(position, CHAT_RADIUS)) {
-                messageQueues.computeIfAbsent(agent.getAgentId(), key -> new ArrayList<>()).add(message);
+                SocialMessage message = new SocialMessage(agent.getAgentId(), "Ping", System.currentTimeMillis());
+                messageQueues.computeIfAbsent(other.getAgentId(), key -> new ArrayList<>()).add(message);
+                HierarchicalBotsMod.LOGGER.debug("Social exchange between {} and {}", agent.getAgentId(), other.getAgentId());
             }
         }
     }
 
-    public List<SocialMessage> pullMessagesFor(Identifier agentId, Vec3d position, List<BotAgent> agents) {
+    public List<SocialMessage> pullMessagesFor(Identifier agentId) {
         messageQueues.computeIfAbsent(agentId, key -> new ArrayList<>());
         List<SocialMessage> messages = new ArrayList<>(messageQueues.get(agentId));
-        if (Math.random() < 0.02) {
-            broadcast(agentId, position, "Exploring sector " + position.toString(), agents);
-        }
         messageQueues.get(agentId).clear();
         return messages;
     }

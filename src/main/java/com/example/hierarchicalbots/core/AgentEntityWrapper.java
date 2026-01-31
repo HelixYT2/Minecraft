@@ -47,13 +47,13 @@ public class AgentEntityWrapper {
         return spawnPos;
     }
 
-    public void spawn() {
+    public FakePlayer spawn() {
         GameProfile profile = new GameProfile(uuid, agentId.getPath());
-        fakePlayer = FakePlayer.create(world, profile);
+        fakePlayer = FakePlayer.get(world, profile);
         fakePlayer.refreshPositionAndAngles(spawnPos, 0.0f, 0.0f);
         fakePlayer.setHealth(fakePlayer.getMaxHealth());
-        world.spawnEntity(fakePlayer);
         loadInventory();
+        return fakePlayer;
     }
 
     public Optional<ServerPlayerEntity> getPlayerEntity() {

@@ -15,6 +15,7 @@ public class HierarchicalBotsMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        SimulationCommand.register();
         ServerLifecycleEvents.SERVER_STARTED.register(this::onServerStarted);
         ServerLifecycleEvents.SERVER_STOPPING.register(this::onServerStopping);
         ServerTickEvents.START_SERVER_TICK.register(this::onServerTick);

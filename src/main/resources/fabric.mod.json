@@ -21,6 +21,8 @@
   "depends": {
     "fabricloader": ">=0.15.11",
     "fabric": "*",
+    "fabric-api": "*",
+    "fabric-entity-events-v1": "*",
     "minecraft": "1.21.1"
   }
 }

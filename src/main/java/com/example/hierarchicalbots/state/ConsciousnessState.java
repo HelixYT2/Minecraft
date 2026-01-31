@@ -1,5 +1,6 @@
 package com.example.hierarchicalbots.state;
 
+import com.example.hierarchicalbots.learning.PrefrontalCortex;
 import com.example.hierarchicalbots.perception.PerceptionSnapshot;
 import com.example.hierarchicalbots.social.SocialMessage;
 import java.util.List;
@@ -13,6 +14,9 @@ public class ConsciousnessState {
     private int socialMessages;
     private double learningProgress;
     private int knowledgeEntries;
+    private PrefrontalCortex.BiologicalNeed biologicalNeed = PrefrontalCortex.BiologicalNeed.EXPLORE;
+    private int biologicalAge;
+    private double rewardStatus;
 
     public ConsciousnessState(String agentName) {
         this.agentName = agentName;
@@ -28,9 +32,15 @@ public class ConsciousnessState {
         this.socialMessages = messages.size();
     }
 
-    public void updateLearning(double learningProgress, int knowledgeEntries) {
+    public void updateLearning(double learningProgress, int knowledgeEntries, double rewardStatus) {
         this.learningProgress = learningProgress;
         this.knowledgeEntries = knowledgeEntries;
+        this.rewardStatus = rewardStatus;
+    }
+
+    public void updateNeed(PrefrontalCortex.BiologicalNeed need, int biologicalAge) {
+        this.biologicalNeed = need;
+        this.biologicalAge = biologicalAge;
     }
 
     public String getAgentName() {
@@ -59,5 +69,17 @@ public class ConsciousnessState {
 
     public int getKnowledgeEntries() {
         return knowledgeEntries;
+    }
+
+    public PrefrontalCortex.BiologicalNeed getBiologicalNeed() {
+        return biologicalNeed;
+    }
+
+    public int getBiologicalAge() {
+        return biologicalAge;
+    }
+
+    public double getRewardStatus() {
+        return rewardStatus;
     }
 }

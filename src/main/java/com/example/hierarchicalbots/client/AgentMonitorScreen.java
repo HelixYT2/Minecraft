@@ -31,14 +31,16 @@ public class AgentMonitorScreen extends Screen {
         for (BotAgent agent : agents) {
             ConsciousnessState state = agent.getConsciousnessState();
             String line = String.format(
-                "%s | Pos: %s | Blocks: %d | Entities: %d | Social: %d | Learning: %.2f | Memory: %d",
+                "%s | Pos: %s | Blocks: %d | Entities: %d | Social: %d | Learning: %.2f | Memory: %d | Age: %d | Reward: %.2f",
                 state.getAgentName(),
                 state.getLastKnownPosition() == null ? "?" : shortVec(state.getLastKnownPosition()),
                 state.getPerceivedBlocks(),
                 state.getPerceivedEntities(),
                 state.getSocialMessages(),
                 state.getLearningProgress(),
-                state.getKnowledgeEntries()
+                state.getKnowledgeEntries(),
+                state.getBiologicalAge(),
+                state.getRewardStatus()
             );
             context.drawTextWithShadow(textRenderer, line, 12, y, 0xB0E0FF);
             y += 12;

@@ -14,6 +14,7 @@ import net.minecraft.util.math.Vec3d;
 
 public class BotAgent {
     private static final int LEARNING_INTERVAL_TICKS = 20;
+    private static final int NEED_INTERVAL_TICKS = 100;
     private static final double MOVE_SPEED = 0.12;
     private static final double ROTATION_STEP = 15.0;
 
@@ -30,6 +31,7 @@ public class BotAgent {
     private Vec3d lastPosition;
     private float lastHealth = 20.0f;
     private LizardBrain.MotorDecision lastDecision;
+    private PrefrontalCortex.BiologicalNeed currentNeed = PrefrontalCortex.BiologicalNeed.EXPLORE;
 
     public BotAgent(Identifier agentId,
                     AgentEntityWrapper wrapper,
@@ -60,20 +62,36 @@ public class BotAgent {
         PerceptionSnapshot snapshot = perceptionSensor.capture(wrapper);
         consciousnessState.updatePerception(snapshot);
 
-        List<SocialMessage> messages = socialLayer.pullMessagesFor(agentId, wrapper.getPosition(), allAgents);
+        socialLayer.exchangeIfClose(this, allAgents);
+        List<SocialMessage> messages = socialLayer.pullMessagesFor(agentId);
         consciousnessState.updateSocial(messages);
 
-        PrefrontalCortex.Plan plan = prefrontalCortex.plan(snapshot, messages);
-        LizardBrain.MotorDecision decision = lizardBrain.decide(snapshot, plan);
+        if (tickCounter % NEED_INTERVAL_TICKS == 0) {
+            currentNeed = prefrontalCortex.pickNeed();
+            consciousnessState.updateNeed(currentNeed, tickCounter / NEED_INTERVAL_TICKS);
+        }
+
+        boolean repath = wrapper.getPlayerEntity().map(player -> player.horizontalCollision).orElse(false)
+            || wrapper.getPlayerEntity().map(player -> !player.isOnGround() && player.fallDistance > 2.5f).orElse(false);
+        PrefrontalCortex.Plan plan = prefrontalCortex.plan(snapshot, messages, currentNeed, repath);
+        LizardBrain.MotorDecision decision = lastDecision;
+        if (tickCounter % LEARNING_INTERVAL_TICKS == 0 || decision == null) {
+            decision = lizardBrain.decide(snapshot, plan);
+        }
 
         executeMotorDecision(decision);
+
+        boolean hitWall = wrapper.getPlayerEntity().map(player -> player.horizontalCollision).orElse(false);
+        boolean fell = wrapper.getPlayerEntity().map(player -> !player.isOnGround() && player.fallDistance > 2.5f).orElse(false);
 
         double reward = lizardBrain.calculateReward(
             wrapper.getSpawnPos(),
             lastPosition,
             wrapper.getPosition(),
             lastHealth,
-            wrapper.getHealth()
+            wrapper.getHealth(),
+            hitWall,
+            fell
         );
         accumulatedReward += reward;
 
@@ -84,7 +102,7 @@ public class BotAgent {
         }
 
         prefrontalCortex.learnFromOutcome(snapshot, decision, reward);
-        consciousnessState.updateLearning(lizardBrain.getLearningProgress(), prefrontalCortex.getKnowledgeSize());
+        consciousnessState.updateLearning(lizardBrain.getLearningProgress(), prefrontalCortex.getKnowledgeSize(), lizardBrain.getSurprisePain());
 
         lastDecision = decision;
         lastPosition = wrapper.getPosition();
