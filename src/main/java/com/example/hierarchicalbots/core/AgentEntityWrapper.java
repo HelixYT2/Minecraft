@@ -1,18 +1,8 @@
 package com.example.hierarchicalbots.core;
 
-import com.mojang.authlib.GameProfile;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Optional;
-import java.util.UUID;
-import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtIo;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
@@ -21,18 +11,13 @@ import net.minecraft.util.math.Vec3d;
 public class AgentEntityWrapper {
     private final Identifier agentId;
     private final ServerWorld world;
-    private final UUID uuid;
     private final BlockPos spawnPos;
-    private final Path inventoryFile;
-    private FakePlayer fakePlayer;
-    private Vec3d fallbackPosition = Vec3d.ZERO;
+    private HumanAgentEntity entity;
 
-    public AgentEntityWrapper(Identifier agentId, ServerWorld world, UUID uuid, BlockPos spawnPos, Path inventoryFile) {
+    public AgentEntityWrapper(Identifier agentId, ServerWorld world, BlockPos spawnPos) {
         this.agentId = agentId;
         this.world = world;
-        this.uuid = uuid;
         this.spawnPos = spawnPos;
-        this.inventoryFile = inventoryFile;
     }
 
     public Identifier getAgentId() {
@@ -47,28 +32,12 @@ public class AgentEntityWrapper {
         return spawnPos;
     }
 
-    public FakePlayer spawn() {
-        GameProfile profile = new GameProfile(uuid, agentId.getPath());
-        fakePlayer = FakePlayer.get(world, profile);
-        fakePlayer.refreshPositionAndAngles(spawnPos, 0.0f, 0.0f);
-        fakePlayer.setHealth(fakePlayer.getMaxHealth());
-        loadInventory();
-        return fakePlayer;
-    }
-
-    public Optional<ServerPlayerEntity> getPlayerEntity() {
-        return Optional.ofNullable(fakePlayer);
-    }
-
-    public void setFallbackPosition(Vec3d position) {
-        this.fallbackPosition = position;
+    public void bindEntity(HumanAgentEntity entity) {
+        this.entity = entity;
     }
 
     public Vec3d getPosition() {
-        if (fakePlayer != null) {
-            return fakePlayer.getPos();
-        }
-        return fallbackPosition;
+        return entity != null ? entity.getPos() : Vec3d.ofCenter(spawnPos);
     }
 
     public BlockPos getBlockPos() {
@@ -76,55 +45,60 @@ public class AgentEntityWrapper {
     }
 
     public Optional<Entity> getEntity() {
-        return Optional.ofNullable(fakePlayer);
+        return Optional.ofNullable(entity);
+    }
+
+    public Optional<LivingEntity> getLivingEntity() {
+        return Optional.ofNullable(entity);
     }
 
     public float getHealth() {
-        if (fakePlayer != null) {
-            return fakePlayer.getHealth();
-        }
-        return 20.0f;
+        return entity != null ? entity.getHealth() : 20.0f;
     }
 
-    public void saveInventory() {
-        if (fakePlayer == null) {
-            return;
-        }
-        NbtCompound compound = new NbtCompound();
-        compound.put("Inventory", fakePlayer.getInventory().writeNbt(new NbtList()));
-        try {
-            Files.createDirectories(inventoryFile.getParent());
-            NbtIo.write(compound, inventoryFile);
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to save inventory for " + agentId, e);
+    public void addVelocity(Vec3d movement) {
+        if (entity != null) {
+            entity.addVelocity(movement.x, movement.y, movement.z);
         }
     }
 
-    private void loadInventory() {
-        if (fakePlayer == null || !Files.exists(inventoryFile)) {
-            return;
+    public void jump() {
+        if (entity != null) {
+            entity.jump();
         }
-        try {
-            NbtCompound compound = NbtIo.read(inventoryFile);
-            if (compound != null && compound.contains("Inventory")) {
-                fakePlayer.getInventory().readNbt(compound.getList("Inventory", 10));
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to load inventory for " + agentId, e);
+    }
+
+    public void rotateYaw(float yawDelta) {
+        if (entity != null) {
+            float newYaw = entity.getYaw() + yawDelta;
+            entity.setYaw(newYaw);
+            entity.setHeadYaw(newYaw);
         }
+    }
+
+    public boolean isOnGround() {
+        return entity != null && entity.isOnGround();
+    }
+
+    public float getFallDistance() {
+        return entity != null ? entity.fallDistance : 0.0f;
+    }
+
+    public boolean hasHorizontalCollision() {
+        return entity != null && entity.horizontalCollision;
     }
 
     public void attackNearestEntity(double range) {
-        if (fakePlayer == null) {
+        if (entity == null) {
             return;
         }
-        Vec3d center = fakePlayer.getPos();
-        Entity nearest = world.getOtherEntities(fakePlayer, fakePlayer.getBoundingBox().expand(range)).stream()
-            .filter(entity -> entity instanceof LivingEntity)
+        Vec3d center = entity.getPos();
+        Entity nearest = world.getOtherEntities(entity, entity.getBoundingBox().expand(range)).stream()
+            .filter(target -> target instanceof LivingEntity)
             .min((a, b) -> Double.compare(a.squaredDistanceTo(center), b.squaredDistanceTo(center)))
             .orElse(null);
-        if (nearest != null) {
-            fakePlayer.attack(nearest);
+        if (nearest instanceof LivingEntity living) {
+            entity.tryAttack(living);
         }
     }
 }

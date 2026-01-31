@@ -124,8 +124,8 @@ public class BotAgent {
             .map(a -> a.getWrapper().getPosition().subtract(wrapper.getPosition()))
             .orElse(Vec3d.ZERO);
 
-        boolean repath = wrapper.getPlayerEntity().map(player -> player.horizontalCollision).orElse(false)
-            || wrapper.getPlayerEntity().map(player -> !player.isOnGround() && player.fallDistance > 2.5f).orElse(false);
+        boolean repath = wrapper.hasHorizontalCollision()
+            || (!wrapper.isOnGround() && wrapper.getFallDistance() > 2.5f);
         PrefrontalCortex.Plan plan = prefrontalCortex.plan(snapshot, messages, currentNeed, repath);
         Vec3d desiredMovement = leadershipVector.lengthSquared() > 0
             ? leadershipVector.normalize().multiply(0.6).add(plan.desiredMovement().multiply(0.4))
@@ -137,8 +137,8 @@ public class BotAgent {
 
         executeMotorDecision(decision);
 
-        boolean hitWall = wrapper.getPlayerEntity().map(player -> player.horizontalCollision).orElse(false);
-        boolean fell = wrapper.getPlayerEntity().map(player -> !player.isOnGround() && player.fallDistance > 2.5f).orElse(false);
+        boolean hitWall = wrapper.hasHorizontalCollision();
+        boolean fell = !wrapper.isOnGround() && wrapper.getFallDistance() > 2.5f;
 
         if (tickCounter % REWARD_INTERVAL_TICKS == 0) {
             double reward = lizardBrain.calculateReward(
@@ -182,12 +182,8 @@ public class BotAgent {
         }
         switch (decision.action()) {
             case MOVE_FORWARD -> applyMovement(decision.desiredMovement());
-            case JUMP -> wrapper.getPlayerEntity().ifPresent(net.minecraft.server.network.ServerPlayerEntity::jump);
-            case ROTATE_YAW -> wrapper.getPlayerEntity().ifPresent(player -> {
-                float newYaw = (float) (player.getYaw() + ROTATION_STEP);
-                player.setYaw(newYaw);
-                player.setHeadYaw(newYaw);
-            });
+            case JUMP -> wrapper.jump();
+            case ROTATE_YAW -> wrapper.rotateYaw((float) ROTATION_STEP);
             case ATTACK -> wrapper.attackNearestEntity(2.5);
         }
     }
@@ -198,6 +194,6 @@ public class BotAgent {
         double speed = Math.max(0.02, BASE_MOVE_SPEED * traits.speed() - decayPenalty);
         Vec3d movement = direction.multiply(speed);
         energy = Math.max(0.0, energy - 0.01);
-        wrapper.getPlayerEntity().ifPresent(player -> player.addVelocity(movement.x, movement.y, movement.z));
+        wrapper.addVelocity(movement);
     }
 }
