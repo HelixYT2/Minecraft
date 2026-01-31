@@ -68,11 +68,11 @@ public class VectorMemoryStore {
     }
 
     public double[] encodeOutcome(PerceptionSnapshot snapshot, LizardBrain.MotorCommand command, double reward) {
-        Vec3d movement = command.movement();
+        Vec3d target = command.target();
         double[] vector = new double[] {
-            movement.x,
-            movement.y,
-            movement.z,
+            target.x,
+            target.y,
+            target.z,
             reward,
             snapshot.getNearbyEntities().size()
         };

@@ -3,14 +3,16 @@ package com.example.hierarchicalbots.core;
 import com.example.hierarchicalbots.learning.LizardBrain;
 import com.example.hierarchicalbots.learning.PrefrontalCortex;
 import com.example.hierarchicalbots.learning.VectorMemoryStore;
+import com.example.hierarchicalbots.pathing.PathingController;
+import com.example.hierarchicalbots.pathing.VanillaPathingController;
 import com.example.hierarchicalbots.perception.PerceptionSensor;
 import com.example.hierarchicalbots.perception.PerceptionSnapshot;
+import com.example.hierarchicalbots.planning.GoalIntent;
 import com.example.hierarchicalbots.social.SocialLayer;
 import com.example.hierarchicalbots.social.SocialMessage;
 import com.example.hierarchicalbots.state.ConsciousnessState;
 import java.util.List;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Vec3d;
 
 public class BotAgent {
     private final Identifier agentId;
@@ -20,6 +22,7 @@ public class BotAgent {
     private final LizardBrain lizardBrain;
     private final SocialLayer socialLayer;
     private final ConsciousnessState consciousnessState;
+    private PathingController pathingController;
 
     public BotAgent(Identifier agentId,
                     AgentEntityWrapper wrapper,
@@ -49,7 +52,7 @@ public class BotAgent {
         List<SocialMessage> messages = socialLayer.pullMessagesFor(agentId, wrapper.getPosition(), allAgents);
         consciousnessState.updateSocial(messages);
 
-        PrefrontalCortex.Plan plan = prefrontalCortex.plan(snapshot, messages);
+        GoalIntent plan = prefrontalCortex.plan(snapshot, messages);
         LizardBrain.MotorCommand command = lizardBrain.decide(snapshot, plan);
 
         executeMotorCommand(command);
@@ -61,11 +64,20 @@ public class BotAgent {
     }
 
     private void executeMotorCommand(LizardBrain.MotorCommand command) {
-        Vec3d movement = command.movement();
-        wrapper.getPlayerEntity().ifPresent(player -> player.addVelocity(movement.x, movement.y, movement.z));
+        wrapper.getPlayerEntity().ifPresent(entity -> {
+            ensurePathing(entity);
+            pathingController.setTarget(command.target(), command.speed());
+            pathingController.tick();
+        });
     }
 
     private double evaluateReward(PerceptionSnapshot snapshot, LizardBrain.MotorCommand command) {
         return snapshot.getNearbyEntities().size() * 0.1 + command.energyCost() * -0.05;
+    }
+
+    private void ensurePathing(com.example.hierarchicalbots.entity.AgentEntity entity) {
+        if (pathingController == null) {
+            pathingController = new VanillaPathingController(entity);
+        }
     }
 }

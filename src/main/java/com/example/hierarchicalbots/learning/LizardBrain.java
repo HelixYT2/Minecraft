@@ -1,6 +1,7 @@
 package com.example.hierarchicalbots.learning;
 
 import com.example.hierarchicalbots.perception.PerceptionSnapshot;
+import com.example.hierarchicalbots.planning.GoalIntent;
 import java.util.Random;
 import net.minecraft.util.math.Vec3d;
 
@@ -9,12 +10,13 @@ public class LizardBrain {
     private double explorationRate = 1.0;
     private double learningProgress;
 
-    public MotorCommand decide(PerceptionSnapshot snapshot, PrefrontalCortex.Plan plan) {
-        Vec3d desired = plan.desiredMovement();
-        Vec3d noise = new Vec3d(random.nextGaussian(), random.nextGaussian(), random.nextGaussian()).multiply(explorationRate * 0.05);
-        Vec3d movement = desired.add(noise).multiply(0.1);
-        double energy = movement.length();
-        return new MotorCommand(movement, energy);
+    public MotorCommand decide(PerceptionSnapshot snapshot, GoalIntent intent) {
+        Vec3d baseTarget = intent.target().orElseGet(() -> snapshot.getPosition().add(random.nextDouble() - 0.5, 0.0, random.nextDouble() - 0.5).multiply(4.0));
+        Vec3d noise = new Vec3d(random.nextGaussian(), 0.0, random.nextGaussian()).multiply(explorationRate * 0.2);
+        Vec3d target = baseTarget.add(noise);
+        double speed = 0.8 + (intent.priority() * 0.4);
+        double energy = speed * 0.1;
+        return new MotorCommand(target, speed, energy);
     }
 
     public void applyReward(MotorCommand command, double reward) {
@@ -26,6 +28,6 @@ public class LizardBrain {
         return learningProgress;
     }
 
-    public record MotorCommand(Vec3d movement, double energyCost) {
+    public record MotorCommand(Vec3d target, double speed, double energyCost) {
     }
 }
