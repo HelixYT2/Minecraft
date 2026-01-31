@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "hierarchical_bots",
+  "version": "${version}",
+  "name": "Hierarchical Multi-Agent Bots",
+  "description": "Dual-layer Brain-and-Lizard architecture with tabula rasa learning for 10 autonomous bots.",
+  "authors": ["OpenAI"],
+  "contact": {
+    "sources": "https://example.com"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.example.hierarchicalbots.HierarchicalBotsMod"
+    ],
+    "client": [
+      "com.example.hierarchicalbots.HierarchicalBotsClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.11",
+    "fabric": "*",
+    "minecraft": "1.21.1"
+  }
+}
