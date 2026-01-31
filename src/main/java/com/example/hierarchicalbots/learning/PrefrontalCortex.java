@@ -56,5 +56,8 @@ public class PrefrontalCortex {
     }
 
     public record Plan(Vec3d desiredMovement, Vec3d targetCoordinate, BiologicalNeed need) {
+        public Plan withMovement(Vec3d movement) {
+            return new Plan(movement, targetCoordinate, need);
+        }
     }
 }
