@@ -93,8 +93,10 @@ public class BotManager {
             .resolve(id.getPath() + ".dat");
         AgentEntityWrapper wrapper = new AgentEntityWrapper(id, world, uuid, spawnPos, inventoryPath);
         FakePlayer fakePlayer = wrapper.spawn();
+        fakePlayer.refreshPositionAndAngles(spawnPos.getX(), spawnPos.getY(), spawnPos.getZ(), 0.0f, 0.0f);
         world.spawnEntity(fakePlayer);
-        fakePlayer.getNetworkHandler().onPlayerJoin();
+        world.getChunkManager().addEntity(fakePlayer);
+        fakePlayer.networkHandler.onPlayerJoin();
         BotAgent agent = new BotAgent(id, wrapper, memoryStore, socialLayer);
         agents.add(agent);
     }
