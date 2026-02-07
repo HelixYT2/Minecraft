@@ -1,0 +1,312 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:HelixHub.ViewModels"
+        xmlns:m="using:HelixHub.Models"
+        xmlns:conv="using:HelixHub.Converters"
+        x:Class="HelixHub.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="HelixHub - Minecraft AI Assistant"
+        Width="1400" Height="900"
+        MinWidth="1000" MinHeight="600"
+        Background="#1E1E1E">
+    
+    <Window.Resources>
+        <conv:StepStatusToColorConverter x:Key="StepStatusToColor"/>
+        <conv:StepStatusToIconConverter x:Key="StepStatusToIcon"/>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+    </Window.Resources>
+    
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="250"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="350"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="200"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Left Panel: Instances -->
+        <Border Grid.Column="0" Grid.RowSpan="2" Background="#252526" Padding="10">
+            <Grid RowDefinitions="Auto,*,Auto,Auto,*,Auto">
+                <!-- Connected Instances -->
+                <TextBlock Text="Connected Instances" Classes="header" Grid.Row="0"/>
+                
+                <ListBox Grid.Row="1" 
+                         ItemsSource="{Binding ConnectedInstances}"
+                         SelectedItem="{Binding SelectedInstance}"
+                         Background="Transparent">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="m:ConnectedInstance">
+                            <Border Classes="card" Padding="10">
+                                <StackPanel Spacing="5">
+                                    <TextBlock Text="{Binding InstanceId}" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding MinecraftVersion}" FontSize="12" Opacity="0.7"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <Ellipse Width="8" Height="8" Fill="{Binding BaritoneAvailable, Converter={StaticResource BoolToVisibility}, ConverterParameter=Green|Red}"/>
+                                        <TextBlock Text="{Binding Status}" FontSize="11"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                
+                <Separator Grid.Row="2" Margin="0,10"/>
+                
+                <!-- Prism Instances -->
+                <TextBlock Text="Prism Instances" Classes="header" Grid.Row="3"/>
+                
+                <ListBox Grid.Row="4"
+                         ItemsSource="{Binding PrismInstances}"
+                         SelectedItem="{Binding SelectedPrismInstance}"
+                         Background="Transparent">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="m:PrismInstance">
+                            <Border Classes="card" Padding="10">
+                                <StackPanel Spacing="3">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding MinecraftVersion}" FontSize="11" Opacity="0.7"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,3,0,0">
+                                        <TextBlock Text="🔧" FontSize="11" 
+                                                   Opacity="{Binding HasHelixMod, Converter={StaticResource BoolToVisibility}, ConverterParameter=1|0.3}"
+                                                   ToolTip.Tip="Helix Mod"/>
+                                        <TextBlock Text="🤖" FontSize="11"
+                                                   Opacity="{Binding HasBaritone, Converter={StaticResource BoolToVisibility}, ConverterParameter=1|0.3}"
+                                                   ToolTip.Tip="Baritone"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                
+                <StackPanel Grid.Row="5" Spacing="5" Margin="0,10,0,0">
+                    <Button Content="🚀 Launch Selected" 
+                            Command="{Binding LaunchPrismInstanceCommand}"
+                            IsEnabled="{Binding SelectedPrismInstance, Converter={x:Static ObjectConverters.IsNotNull}}"
+                            HorizontalAlignment="Stretch"
+                            Classes="primary"/>
+                    <Button Content="🔄 Refresh" 
+                            Command="{Binding RefreshPrismInstancesCommand}"
+                            HorizontalAlignment="Stretch"/>
+                    <Button Content="⚙️ Settings"
+                            Command="{Binding OpenSettingsCommand}"
+                            HorizontalAlignment="Stretch"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- Center Panel: Chat -->
+        <Border Grid.Column="1" Grid.Row="0" Background="#1E1E1E" Padding="15">
+            <Grid RowDefinitions="*,Auto">
+                <!-- Chat Messages -->
+                <ScrollViewer Grid.Row="0" x:Name="ChatScrollViewer">
+                    <ItemsControl ItemsSource="{Binding ChatMessages}" Margin="0,0,0,10">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="m:ChatMessage">
+                                <Border Margin="0,5" 
+                                        Padding="15,10"
+                                        CornerRadius="8"
+                                        MaxWidth="600"
+                                        HorizontalAlignment="{Binding IsUser, Converter={StaticResource BoolToVisibility}, ConverterParameter=Right|Left}">
+                                    <Border.Background>
+                                        <MultiBinding Converter="{StaticResource BoolToVisibility}" ConverterParameter="#0078D4|#3D3D3D">
+                                            <Binding Path="IsUser"/>
+                                        </MultiBinding>
+                                    </Border.Background>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Content}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:HH:mm}'}" 
+                                                   FontSize="10" Opacity="0.5" Margin="0,5,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+                
+                <!-- Input Area -->
+                <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+                    <TextBox Grid.Column="0" 
+                             Text="{Binding UserInput}"
+                             Watermark="Type your command (e.g., 'Get me full diamond armor')..."
+                             AcceptsReturn="False"
+                             x:Name="InputTextBox"/>
+                    <Button Grid.Column="1" 
+                            Content="Send" 
+                            Command="{Binding SendMessageCommand}"
+                            Classes="primary"
+                            Margin="10,0,0,0"
+                            IsEnabled="{Binding !IsExecuting}"/>
+                </Grid>
+            </Grid>
+        </Border>
+        
+        <!-- Right Panel: Plan & State -->
+        <Border Grid.Column="2" Grid.Row="0" Background="#252526" Padding="15">
+            <Grid RowDefinitions="Auto,*,Auto,Auto">
+                <TextBlock Text="Current Plan" Classes="header" Grid.Row="0"/>
+                
+                <!-- Plan View -->
+                <ScrollViewer Grid.Row="1" IsVisible="{Binding CurrentPlan, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="{Binding CurrentPlan.Goal}" FontWeight="Bold" TextWrapping="Wrap"/>
+                        
+                        <ItemsControl ItemsSource="{Binding CurrentPlan.Steps}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="m:PlanStep">
+                                    <Border Classes="card" Padding="10" Margin="0,5">
+                                        <Grid ColumnDefinitions="Auto,*">
+                                            <TextBlock Grid.Column="0" 
+                                                       Text="{Binding Status, Converter={StaticResource StepStatusToIcon}}"
+                                                       FontSize="16"
+                                                       VerticalAlignment="Top"
+                                                       Margin="0,0,10,0"/>
+                                            <StackPanel Grid.Column="1" Spacing="3">
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding Rationale}" 
+                                                           FontSize="11" 
+                                                           Opacity="0.7"
+                                                           TextWrapping="Wrap"
+                                                           IsVisible="{Binding Rationale, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                                <TextBlock Text="{Binding StatusMessage}"
+                                                           FontSize="11"
+                                                           Foreground="{Binding Status, Converter={StaticResource StepStatusToColor}}"
+                                                           IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+                
+                <TextBlock Grid.Row="1" 
+                           Text="No active plan" 
+                           Opacity="0.5"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           IsVisible="{Binding CurrentPlan, Converter={x:Static ObjectConverters.IsNull}}"/>
+                
+                <!-- Player State -->
+                <Border Grid.Row="2" Classes="card" Margin="0,10,0,0" IsVisible="{Binding CurrentPlayerState, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Player State" Classes="subheader"/>
+                        <TextBlock Text="{Binding CurrentPlayerState.Position}" FontSize="12"/>
+                        <TextBlock Text="{Binding CurrentPlayerState.Dimension}" FontSize="12" Opacity="0.7"/>
+                        <StackPanel Orientation="Horizontal" Spacing="15">
+                            <TextBlock FontSize="12">
+                                <Run Text="❤️"/>
+                                <Run Text="{Binding CurrentPlayerState.Health, StringFormat='{}{0:F0}'}"/>
+                                <Run Text="/"/>
+                                <Run Text="{Binding CurrentPlayerState.MaxHealth, StringFormat='{}{0:F0}'}"/>
+                            </TextBlock>
+                            <TextBlock FontSize="12">
+                                <Run Text="🍖"/>
+                                <Run Text="{Binding CurrentPlayerState.Hunger}"/>
+                                <Run Text="/20"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Action Buttons -->
+                <StackPanel Grid.Row="3" Spacing="10" Margin="0,15,0,0">
+                    <!-- Pending Plan Actions -->
+                    <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding IsPlanPending}">
+                        <Button Content="✓ Approve" Command="{Binding ApprovePlanCommand}" Classes="success" HorizontalAlignment="Stretch"/>
+                        <Button Content="✗ Reject" Command="{Binding RejectPlanCommand}" Classes="danger" HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+                    
+                    <!-- Executing Actions -->
+                    <Button Content="⏹ Cancel Execution" 
+                            Command="{Binding CancelExecutionCommand}" 
+                            Classes="danger"
+                            HorizontalAlignment="Stretch"
+                            IsVisible="{Binding IsExecuting}"/>
+                    
+                    <!-- Failed Step Actions -->
+                    <Border Classes="card" Background="#3A1E1E" IsVisible="{Binding FailedStep, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="Step Failed" FontWeight="Bold" Foreground="#F44336"/>
+                            <TextBlock Text="{Binding FailedStepError}" TextWrapping="Wrap" FontSize="12"/>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button Content="Retry" Command="{Binding RetryFailedStepCommand}" Classes="primary"/>
+                                <Button Content="Skip" Command="{Binding SkipFailedStepCommand}"/>
+                                <Button Content="Abort" Command="{Binding AbortExecutionCommand}" Classes="danger"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- Bottom Panel: Logs -->
+        <Border Grid.Column="1" Grid.ColumnSpan="2" Grid.Row="1" Background="#1A1A1A" Padding="10">
+            <Grid RowDefinitions="Auto,*">
+                <TextBlock Text="Logs" Classes="subheader" Grid.Row="0"/>
+                <ScrollViewer Grid.Row="1" x:Name="LogScrollViewer">
+                    <ItemsControl ItemsSource="{Binding Logs}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" FontFamily="Consolas" FontSize="11" Margin="0,1"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+        
+        <!-- Settings Overlay -->
+        <Border Grid.ColumnSpan="3" Grid.RowSpan="2"
+                Background="#80000000"
+                IsVisible="{Binding IsSettingsOpen}">
+            <Border Background="#2D2D2D" 
+                    CornerRadius="10"
+                    Padding="30"
+                    Width="500"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center">
+                <StackPanel Spacing="20">
+                    <TextBlock Text="Settings" Classes="header"/>
+                    
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Auth Token" FontWeight="SemiBold"/>
+                        <Grid ColumnDefinitions="*,Auto,Auto">
+                            <TextBox Grid.Column="0" Text="{Binding AuthToken}" IsReadOnly="True"/>
+                            <Button Grid.Column="1" Content="📋" Command="{Binding CopyTokenCommand}" Margin="5,0,0,0" ToolTip.Tip="Copy to clipboard"/>
+                            <Button Grid.Column="2" Content="🔄" Command="{Binding GenerateNewTokenCommand}" Margin="5,0,0,0" ToolTip.Tip="Generate new token"/>
+                        </Grid>
+                        <TextBlock Text="Copy this token to your mod's helix-bridge.json config" FontSize="11" Opacity="0.7"/>
+                    </StackPanel>
+                    
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="LM Studio URL" FontWeight="SemiBold"/>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBox Grid.Column="0" Text="{Binding LmStudioUrl}"/>
+                            <Button Grid.Column="1" Content="Test" Command="{Binding TestLmStudioConnectionCommand}" Margin="5,0,0,0"/>
+                        </Grid>
+                    </StackPanel>
+                    
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Prism Launcher Path" FontWeight="SemiBold"/>
+                        <TextBox Text="{Binding PrismLauncherPath}"/>
+                    </StackPanel>
+                    
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Prism Data Root" FontWeight="SemiBold"/>
+                        <TextBox Text="{Binding PrismDataRoot}"/>
+                    </StackPanel>
+                    
+                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+                        <Button Content="Cancel" Command="{Binding CloseSettingsCommand}"/>
+                        <Button Content="Save" Command="{Binding SaveSettingsCommand}" Classes="primary"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,32 @@
+# Build outputs
+dist/*.jar
+dist/*.exe
+dist/hub-publish/
+
+# Gradle
+mod-fabric/.gradle/
+mod-fabric/build/
+mod-fabric/run/
+
+# .NET
+hub-desktop/**/bin/
+hub-desktop/**/obj/
+hub-desktop/**/*.user
+hub-desktop/.vs/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.suo
+*.ntvs_analysis.dat
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local config
+*.local.json
