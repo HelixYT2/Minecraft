@@ -1,0 +1,242 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://helix.dev/schemas/message.schema.json",
+  "title": "Helix Bridge Message",
+  "description": "Message envelope for Helix Bridge Protocol",
+  "type": "object",
+  "required": ["type", "timestamp"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["Hello", "Register", "ToolRequest", "ToolResponse", "ActionRequest", "ActionResult", "StateUpdate", "Error"]
+    },
+    "requestId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "instanceId": {
+      "type": "string"
+    },
+    "sessionId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "type": { "const": "Hello" } }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": ["protocolVersion", "authToken"],
+                "properties": {
+                  "protocolVersion": { "type": "string" },
+                  "authToken": { "type": "string", "minLength": 1 }
+                }
+              },
+              {
+                "type": "object",
+                "required": ["protocolVersion", "accepted"],
+                "properties": {
+                  "protocolVersion": { "type": "string" },
+                  "accepted": { "type": "boolean" },
+                  "hubVersion": { "type": "string" },
+                  "reason": { "type": "string" }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "Register" } }
+      },
+      "then": {
+        "required": ["instanceId", "sessionId"],
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["modVersion", "minecraftVersion", "baritoneAvailable", "capabilities"],
+            "properties": {
+              "modVersion": { "type": "string" },
+              "minecraftVersion": { "type": "string" },
+              "baritoneAvailable": { "type": "boolean" },
+              "baritoneVersion": { "type": ["string", "null"] },
+              "capabilities": {
+                "type": "object",
+                "required": ["tools", "actions"],
+                "properties": {
+                  "tools": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "actions": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "ToolRequest" } }
+      },
+      "then": {
+        "required": ["requestId", "instanceId", "sessionId"],
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["tool"],
+            "properties": {
+              "tool": {
+                "type": "string",
+                "enum": ["get_player_state", "get_baritone_status"]
+              },
+              "args": { "type": "object" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "ToolResponse" } }
+      },
+      "then": {
+        "required": ["requestId"],
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["success", "tool"],
+            "properties": {
+              "success": { "type": "boolean" },
+              "tool": { "type": "string" },
+              "data": { "type": "object" },
+              "error": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "ActionRequest" } }
+      },
+      "then": {
+        "required": ["requestId", "instanceId", "sessionId"],
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["action"],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": ["baritone_command", "craft_item", "equip_armor", "stop_all"]
+              },
+              "args": { "type": "object" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "ActionResult" } }
+      },
+      "then": {
+        "required": ["requestId"],
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["success", "action"],
+            "properties": {
+              "success": { "type": "boolean" },
+              "action": { "type": "string" },
+              "result": { "type": "object" },
+              "error": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "StateUpdate" } }
+      },
+      "then": {
+        "required": ["instanceId", "sessionId"],
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "player": {
+                "type": "object",
+                "properties": {
+                  "position": {
+                    "type": "object",
+                    "properties": {
+                      "x": { "type": "number" },
+                      "y": { "type": "number" },
+                      "z": { "type": "number" }
+                    }
+                  },
+                  "dimension": { "type": "string" },
+                  "health": { "type": "number" },
+                  "maxHealth": { "type": "number" },
+                  "hunger": { "type": "integer" },
+                  "saturation": { "type": "number" }
+                }
+              },
+              "baritone": {
+                "type": "object",
+                "properties": {
+                  "active": { "type": "boolean" },
+                  "currentGoal": { "type": ["string", "null"] },
+                  "currentProcess": { "type": ["string", "null"] },
+                  "progress": { "type": ["string", "null"] }
+                }
+              },
+              "inventory": { "type": "object" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "Error" } }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["code", "message"],
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": "string" },
+              "recoverable": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

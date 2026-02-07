@@ -1,0 +1,4 @@
+# This file keeps the dist directory in version control
+# Build outputs go here:
+# - HelixMinecraftBridge-1.21.1.jar
+# - HelixHub.exe

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "helix-bridge",
+  "version": "${version}",
+  "name": "Helix Minecraft Bridge",
+  "description": "Bridges Minecraft with HelixHub desktop application for AI-assisted gameplay",
+  "authors": ["Helix Development Team"],
+  "contact": {
+    "homepage": "https://github.com/helix-dev/helix-bridge",
+    "sources": "https://github.com/helix-dev/helix-bridge"
+  },
+  "license": "MIT",
+  "icon": "assets/helix-bridge/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.helix.bridge.HelixBridgeMod"]
+  },
+  "mixins": [],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "baritone": "*"
+  },
+  "accessWidener": "helix-bridge.accesswidener"
+}

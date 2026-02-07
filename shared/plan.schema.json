@@ -1,0 +1,217 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://helix.dev/schemas/plan.schema.json",
+  "title": "Helix Execution Plan",
+  "description": "Schema for AI-generated execution plans",
+  "type": "object",
+  "required": ["goal", "steps", "safety"],
+  "additionalProperties": false,
+  "properties": {
+    "goal": {
+      "type": "string",
+      "description": "Clear description of what this plan will accomplish",
+      "minLength": 1
+    },
+    "assumptions": {
+      "type": "array",
+      "description": "Assumptions made about the current game state",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "steps": {
+      "type": "array",
+      "description": "Ordered list of execution steps",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/step"
+      }
+    },
+    "safety": {
+      "type": "object",
+      "description": "Safety and approval settings",
+      "required": ["requires_user_approval", "no_external_network"],
+      "additionalProperties": false,
+      "properties": {
+        "requires_user_approval": {
+          "type": "boolean",
+          "description": "Whether this plan requires user approval before execution",
+          "const": true
+        },
+        "no_external_network": {
+          "type": "boolean",
+          "description": "Confirms no external network calls are made",
+          "const": true
+        }
+      }
+    }
+  },
+  "definitions": {
+    "step": {
+      "type": "object",
+      "required": ["id", "title", "actions"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique step identifier",
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "title": {
+          "type": "string",
+          "description": "Short human-readable title",
+          "minLength": 1
+        },
+        "rationale": {
+          "type": "string",
+          "description": "Why this step is needed"
+        },
+        "preconditions": {
+          "type": "array",
+          "description": "Conditions that must be true before this step",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "actions": {
+          "type": "array",
+          "description": "Actions to execute in this step",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/action"
+          }
+        },
+        "success_criteria": {
+          "type": "array",
+          "description": "How to verify this step succeeded",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "required": ["tool", "args"],
+      "additionalProperties": false,
+      "properties": {
+        "tool": {
+          "type": "string",
+          "description": "Tool or action to execute",
+          "enum": ["baritone_command", "craft_item", "equip_armor", "stop_all", "wait"]
+        },
+        "args": {
+          "type": "object",
+          "description": "Arguments for the tool"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "tool": { "const": "baritone_command" } }
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "type": "object",
+                "required": ["command"],
+                "properties": {
+                  "command": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Baritone command to execute (e.g., 'mine diamond_ore')"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "tool": { "const": "craft_item" } }
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "type": "object",
+                "required": ["item"],
+                "properties": {
+                  "item": {
+                    "type": "string",
+                    "description": "Minecraft item ID (e.g., 'minecraft:diamond_chestplate')"
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "tool": { "const": "equip_armor" } }
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "type": "object",
+                "properties": {
+                  "slot": {
+                    "type": "string",
+                    "enum": ["all", "head", "chest", "legs", "feet"],
+                    "default": "all"
+                  },
+                  "material": {
+                    "type": "string",
+                    "enum": ["diamond", "netherite", "iron", "gold", "leather", "chainmail", "any"],
+                    "default": "any"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "tool": { "const": "stop_all" } }
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "tool": { "const": "wait" } }
+          },
+          "then": {
+            "properties": {
+              "args": {
+                "type": "object",
+                "required": ["seconds"],
+                "properties": {
+                  "seconds": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 300,
+                    "description": "Seconds to wait before next action"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
