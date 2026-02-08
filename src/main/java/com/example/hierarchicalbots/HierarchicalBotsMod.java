@@ -1,6 +1,7 @@
 package com.example.hierarchicalbots;
 
 import com.example.hierarchicalbots.core.BotManager;
+import com.example.hierarchicalbots.entity.AgentEntities;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -15,6 +16,7 @@ public class HierarchicalBotsMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        AgentEntities.registerAttributes();
         ServerLifecycleEvents.SERVER_STARTED.register(this::onServerStarted);
         ServerLifecycleEvents.SERVER_STOPPING.register(this::onServerStopping);
         ServerTickEvents.START_SERVER_TICK.register(this::onServerTick);

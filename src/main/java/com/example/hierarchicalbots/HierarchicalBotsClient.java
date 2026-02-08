@@ -1,8 +1,11 @@
 package com.example.hierarchicalbots;
 
+import com.example.hierarchicalbots.client.AgentEntityRenderer;
 import com.example.hierarchicalbots.client.AgentMonitorScreen;
+import com.example.hierarchicalbots.entity.AgentEntities;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
@@ -14,6 +17,7 @@ public class HierarchicalBotsClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        EntityRendererRegistry.register(AgentEntities.AGENT, AgentEntityRenderer::new);
         monitorKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
             "key.hierarchical_bots.monitor",
             InputUtil.Type.KEYSYM,

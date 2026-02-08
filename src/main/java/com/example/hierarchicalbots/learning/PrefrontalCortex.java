@@ -1,26 +1,25 @@
 package com.example.hierarchicalbots.learning;
 
 import com.example.hierarchicalbots.perception.PerceptionSnapshot;
+import com.example.hierarchicalbots.planning.GoalIntent;
+import com.example.hierarchicalbots.planning.HighLevelPlanner;
+import com.example.hierarchicalbots.planning.HttpLLMPlanner;
+import com.example.hierarchicalbots.planning.StubPlanner;
 import com.example.hierarchicalbots.social.SocialMessage;
+import java.net.URI;
 import java.util.List;
-import net.minecraft.util.math.Vec3d;
 
 public class PrefrontalCortex {
     private final VectorMemoryStore memoryStore;
+    private final HighLevelPlanner planner;
 
     public PrefrontalCortex(VectorMemoryStore memoryStore) {
         this.memoryStore = memoryStore;
+        this.planner = buildPlanner(memoryStore);
     }
 
-    public Plan plan(PerceptionSnapshot snapshot, List<SocialMessage> messages) {
-        double[] contextVector = memoryStore.encodeSnapshot(snapshot, messages);
-        memoryStore.store("context", contextVector);
-        Vec3d direction = new Vec3d(
-            snapshot.getNearbyBlocks().size() % 3 - 1,
-            snapshot.getNearbyEntities().size() % 2,
-            (snapshot.getNearbyBlocks().size() / 3) % 3 - 1
-        ).normalize();
-        return new Plan(direction);
+    public GoalIntent plan(PerceptionSnapshot snapshot, List<SocialMessage> messages) {
+        return planner.plan(snapshot, messages);
     }
 
     public void learnFromOutcome(PerceptionSnapshot snapshot, LizardBrain.MotorCommand command, double reward) {
@@ -32,6 +31,14 @@ public class PrefrontalCortex {
         return memoryStore.getVectorCount();
     }
 
-    public record Plan(Vec3d desiredMovement) {
+    private HighLevelPlanner buildPlanner(VectorMemoryStore memoryStore) {
+        String endpoint = System.getenv("OPENARTEMIS_LLM_ENDPOINT");
+        if (endpoint == null || endpoint.isBlank()) {
+            endpoint = System.getProperty("openartemis.llm.endpoint");
+        }
+        if (endpoint != null && !endpoint.isBlank()) {
+            return new HttpLLMPlanner(URI.create(endpoint));
+        }
+        return new StubPlanner(memoryStore);
     }
 }
